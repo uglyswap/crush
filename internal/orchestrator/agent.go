@@ -44,6 +44,9 @@ type Agent struct {
 		ReceivesFrom []string
 		TransmitsTo  []string
 	}
+
+	// Executor for running the agent (injected by orchestrator)
+	executor *Executor
 }
 
 // AgentContext provides context for agent execution.
@@ -72,8 +75,8 @@ type AgentResult struct {
 
 // Decision represents an architectural decision made by an agent.
 type Decision struct {
-	Decision            string
-	Rationale           string
+	Decision             string
+	Rationale            string
 	AlternativesRejected []string
 }
 
@@ -85,23 +88,54 @@ type CodeBlock struct {
 
 // AgentMetrics tracks agent performance metrics.
 type AgentMetrics struct {
-	FilesCreated      int
-	FilesModified     int
-	LinesAdded        int
-	TestsAdded        int
-	TokensUsed        int64
-	ExecutionTime     int64 // milliseconds
+	FilesCreated  int
+	FilesModified int
+	LinesAdded    int
+	TestsAdded    int
+	TokensUsed    int64
+	ExecutionTime int64 // milliseconds
+}
+
+// SetExecutor sets the executor for this agent.
+func (a *Agent) SetExecutor(executor *Executor) {
+	a.executor = executor
 }
 
 // Execute runs the agent with the given context.
-// This is a placeholder that will be implemented by the actual agent execution.
+// This connects to the LLM via the executor and returns results.
 func (a *Agent) Execute(ctx context.Context, agentCtx *AgentContext) (*AgentResult, error) {
-	// This will be implemented to call the actual LLM with agent-specific prompts
-	return &AgentResult{
-		AgentID:       a.ID,
-		TaskCompleted: true,
-		Summary:       "Agent execution placeholder",
-	}, nil
+	// If no executor is set, use a default one
+	executor := a.executor
+	if executor == nil {
+		// Determine thinking level based on task complexity
+		thinkingLevel := GetThinkingLevelForTask(agentCtx.Task, a.Keywords)
+
+		executor = NewExecutor(ExecutorConfig{
+			ThinkingLevel:   thinkingLevel,
+			MaxOutputTokens: 8192,
+			Temperature:     0.7,
+		})
+	}
+
+	// Execute via the executor
+	result, err := executor.ExecuteAgent(ctx, a, agentCtx)
+	if err != nil {
+		// Return a partial result with error information
+		return &AgentResult{
+			AgentID:       a.ID,
+			TaskCompleted: false,
+			Summary:       "Execution failed: " + err.Error(),
+			Issues: []Issue{
+				{
+					Severity: IssueSeverityBlocker,
+					Message:  err.Error(),
+					AgentID:  a.ID,
+				},
+			},
+		}, err
+	}
+
+	return result, nil
 }
 
 // MatchesTask checks if the agent is relevant for a given task description.
@@ -134,6 +168,9 @@ func (a *Agent) MatchesTask(description string) float64 {
 
 // registerDefaultAgents registers all 28 specialized agents.
 func (o *Orchestrator) registerDefaultAgents() {
+	// Create a default executor for all agents
+	defaultExecutor := NewExecutor(DefaultExecutorConfig())
+
 	agents := []*Agent{
 		// Frontend Squad
 		{
@@ -437,6 +474,8 @@ func (o *Orchestrator) registerDefaultAgents() {
 	}
 
 	for _, agent := range agents {
+		// Set the executor for each agent
+		agent.executor = defaultExecutor
 		o.agents[agent.ID] = agent
 	}
 }
