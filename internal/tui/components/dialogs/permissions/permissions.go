@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/bubbles/v2/help"
-	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/viewport"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/agent/tools"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/permission"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/agent/tools"
+	"github.com/uglyswap/crush/internal/fsext"
+	"github.com/uglyswap/crush/internal/permission"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -76,7 +76,7 @@ func NewPermissionDialogCmp(permission permission.PermissionRequest, opts *Optio
 	}
 
 	// Create viewport for content
-	contentViewport := viewport.New()
+	contentViewport := viewport.New(0, 0)
 	return &permissionDialogCmp{
 		contentViewPort: contentViewport,
 		selectedOption:  0, // Default to "Allow"
@@ -105,7 +105,7 @@ func (p *permissionDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		p.contentDirty = true // Mark content as dirty on window resize
 		cmd := p.SetSize()
 		cmds = append(cmds, cmd)
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, p.keyMap.Right) || key.Matches(msg, p.keyMap.Tab):
 			p.selectedOption = (p.selectedOption + 1) % 3
@@ -166,16 +166,16 @@ func (p *permissionDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			p.contentViewPort = viewPort
 			cmds = append(cmds, cmd)
 		}
-	case tea.MouseWheelMsg:
-		if p.supportsDiffView() && p.isMouseOverDialog(msg.Mouse().X, msg.Mouse().Y) {
+	case tea.MouseMsg:
+		if p.supportsDiffView() && p.isMouseOverDialog(msg.X, msg.Y) {
 			switch msg.Button {
-			case tea.MouseWheelDown:
+			case tea.MouseButtonWheelDown:
 				p.scrollDown()
-			case tea.MouseWheelUp:
+			case tea.MouseButtonWheelUp:
 				p.scrollUp()
-			case tea.MouseWheelLeft:
+			case tea.MouseButtonWheelLeft:
 				p.scrollLeft()
-			case tea.MouseWheelRight:
+			case tea.MouseButtonWheelRight:
 				p.scrollRight()
 			}
 		}
@@ -464,7 +464,7 @@ func (p *permissionDialogCmp) getOrGenerateContent() string {
 
 func (p *permissionDialogCmp) generateBashContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.BashPermissionsParams); ok {
 		content := pr.Command
 		t := styles.CurrentTheme()
@@ -477,8 +477,8 @@ func (p *permissionDialogCmp) generateBashContent() string {
 			out = append(out, t.S().Muted.
 				Width(width).
 				Padding(0, 3).
-				Foreground(t.FgBase).
-				Background(t.BgSubtle).
+				Foreground(styles.TC(t.FgBase)).
+				Background(styles.TC(t.BgSubtle)).
 				Render(ln))
 		}
 
@@ -488,15 +488,15 @@ func (p *permissionDialogCmp) generateBashContent() string {
 			out = append(out, t.S().Muted.
 				Width(width).
 				Padding(0, 3).
-				Foreground(t.FgBase).
-				Background(t.BgSubtle).
+				Foreground(styles.TC(t.FgBase)).
+				Background(styles.TC(t.BgSubtle)).
 				Render(""))
 		}
 
 		// Use the cache for markdown rendering
 		renderedContent := strings.Join(out, "\n")
 		finalContent := baseStyle.
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Padding(1, 0).
 			Render(renderedContent)
 
@@ -510,8 +510,8 @@ func (p *permissionDialogCmp) generateEditContent() string {
 		formatter := core.DiffFormatter().
 			Before(fsext.PrettyPath(pr.FilePath), pr.OldContent).
 			After(fsext.PrettyPath(pr.FilePath), pr.NewContent).
-			Height(p.contentViewPort.Height()).
-			Width(p.contentViewPort.Width()).
+			Height(p.contentViewPort.Height).
+			Width(p.contentViewPort.Width).
 			XOffset(p.diffXOffset).
 			YOffset(p.diffYOffset)
 		if p.useDiffSplitMode() {
@@ -532,8 +532,8 @@ func (p *permissionDialogCmp) generateWriteContent() string {
 		formatter := core.DiffFormatter().
 			Before(fsext.PrettyPath(pr.FilePath), pr.OldContent).
 			After(fsext.PrettyPath(pr.FilePath), pr.NewContent).
-			Height(p.contentViewPort.Height()).
-			Width(p.contentViewPort.Width()).
+			Height(p.contentViewPort.Height).
+			Width(p.contentViewPort.Width).
 			XOffset(p.diffXOffset).
 			YOffset(p.diffYOffset)
 		if p.useDiffSplitMode() {
@@ -550,7 +550,7 @@ func (p *permissionDialogCmp) generateWriteContent() string {
 
 func (p *permissionDialogCmp) generateDownloadContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.DownloadPermissionsParams); ok {
 		content := fmt.Sprintf("URL: %s\nFile: %s", pr.URL, fsext.PrettyPath(pr.FilePath))
 		if pr.Timeout > 0 {
@@ -559,7 +559,7 @@ func (p *permissionDialogCmp) generateDownloadContent() string {
 
 		finalContent := baseStyle.
 			Padding(1, 2).
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Render(content)
 		return finalContent
 	}
@@ -572,8 +572,8 @@ func (p *permissionDialogCmp) generateMultiEditContent() string {
 		formatter := core.DiffFormatter().
 			Before(fsext.PrettyPath(pr.FilePath), pr.OldContent).
 			After(fsext.PrettyPath(pr.FilePath), pr.NewContent).
-			Height(p.contentViewPort.Height()).
-			Width(p.contentViewPort.Width()).
+			Height(p.contentViewPort.Height).
+			Width(p.contentViewPort.Width).
 			XOffset(p.diffXOffset).
 			YOffset(p.diffYOffset)
 		if p.useDiffSplitMode() {
@@ -590,11 +590,11 @@ func (p *permissionDialogCmp) generateMultiEditContent() string {
 
 func (p *permissionDialogCmp) generateFetchContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.FetchPermissionsParams); ok {
 		finalContent := baseStyle.
 			Padding(1, 2).
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Render(pr.URL)
 		return finalContent
 	}
@@ -603,7 +603,7 @@ func (p *permissionDialogCmp) generateFetchContent() string {
 
 func (p *permissionDialogCmp) generateAgenticFetchContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.AgenticFetchPermissionsParams); ok {
 		var content string
 		if pr.URL != "" {
@@ -613,7 +613,7 @@ func (p *permissionDialogCmp) generateAgenticFetchContent() string {
 		}
 		finalContent := baseStyle.
 			Padding(1, 2).
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Render(content)
 		return finalContent
 	}
@@ -622,7 +622,7 @@ func (p *permissionDialogCmp) generateAgenticFetchContent() string {
 
 func (p *permissionDialogCmp) generateViewContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.ViewPermissionsParams); ok {
 		content := fmt.Sprintf("File: %s", fsext.PrettyPath(pr.FilePath))
 		if pr.Offset > 0 {
@@ -634,7 +634,7 @@ func (p *permissionDialogCmp) generateViewContent() string {
 
 		finalContent := baseStyle.
 			Padding(1, 2).
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Render(content)
 		return finalContent
 	}
@@ -643,7 +643,7 @@ func (p *permissionDialogCmp) generateViewContent() string {
 
 func (p *permissionDialogCmp) generateLSContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 	if pr, ok := p.permission.Params.(tools.LSPermissionsParams); ok {
 		content := fmt.Sprintf("Directory: %s", fsext.PrettyPath(pr.Path))
 		if len(pr.Ignore) > 0 {
@@ -652,7 +652,7 @@ func (p *permissionDialogCmp) generateLSContent() string {
 
 		finalContent := baseStyle.
 			Padding(1, 2).
-			Width(p.contentViewPort.Width()).
+			Width(p.contentViewPort.Width).
 			Render(content)
 		return finalContent
 	}
@@ -661,7 +661,7 @@ func (p *permissionDialogCmp) generateLSContent() string {
 
 func (p *permissionDialogCmp) generateDefaultContent() string {
 	t := styles.CurrentTheme()
-	baseStyle := t.S().Base.Background(t.BgSubtle)
+	baseStyle := t.S().Base.Background(styles.TC(t.BgSubtle))
 
 	content := p.permission.Description
 
@@ -707,15 +707,15 @@ func (p *permissionDialogCmp) generateDefaultContent() string {
 		}
 		out = append(out, t.S().Muted.
 			Width(width).
-			Foreground(t.FgBase).
-			Background(t.BgSubtle).
+			Foreground(styles.TC(t.FgBase)).
+			Background(styles.TC(t.BgSubtle)).
 			Render(ln))
 	}
 
 	// Use the cache for markdown rendering
 	renderedContent := strings.Join(out, "\n")
 	finalContent := baseStyle.
-		Width(p.contentViewPort.Width()).
+		Width(p.contentViewPort.Width).
 		Render(renderedContent)
 
 	if renderedContent == "" {
@@ -746,17 +746,17 @@ func (p *permissionDialogCmp) render() string {
 	// Render buttons
 	buttons := p.renderButtons()
 
-	p.contentViewPort.SetWidth(p.width - 4)
+	p.contentViewPort.Width = p.width - 4
 
 	// Always set viewport content (the caching is handled in getOrGenerateContent)
 	const minContentHeight = 9
 
 	availableDialogHeight := max(minContentHeight, p.height-minContentHeight)
-	p.contentViewPort.SetHeight(availableDialogHeight)
+	p.contentViewPort.Height = availableDialogHeight
 	contentFinal := p.getOrGenerateContent()
 	contentHeight := min(availableDialogHeight, lipgloss.Height(contentFinal))
 
-	p.contentViewPort.SetHeight(contentHeight)
+	p.contentViewPort.Height = contentHeight
 	p.contentViewPort.SetContent(contentFinal)
 
 	p.positionRow = p.wHeight / 2
@@ -787,7 +787,7 @@ func (p *permissionDialogCmp) render() string {
 	dialog := baseStyle.
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(t.BorderFocus).
+		BorderForeground(styles.TC(t.BorderFocus)).
 		Width(p.width).
 		Render(
 			content,

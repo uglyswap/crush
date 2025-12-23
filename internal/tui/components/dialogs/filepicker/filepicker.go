@@ -7,18 +7,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"charm.land/bubbles/v2/filepicker"
-	"charm.land/bubbles/v2/help"
-	"charm.land/bubbles/v2/key"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/home"
-	"github.com/charmbracelet/crush/internal/message"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
-	"github.com/charmbracelet/crush/internal/tui/components/image"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	compat_filepicker "github.com/uglyswap/crush/internal/compat/bubbles/filepicker"
+	"github.com/uglyswap/crush/internal/home"
+	"github.com/uglyswap/crush/internal/message"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs"
+	"github.com/uglyswap/crush/internal/tui/components/image"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 )
 
 const (
@@ -70,7 +71,7 @@ func NewFilePickerCmp(workingDir string) FilePicker {
 	fp.AutoHeight = false
 	fp.Styles = t.S().FilePicker
 	fp.Cursor = ""
-	fp.SetHeight(fileSelectionHeight)
+	fp.Height = fileSelectionHeight
 
 	image := image.New(1, 1, "")
 
@@ -101,7 +102,7 @@ func (m *model) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		styles.File = styles.File.Width(m.width)
 		m.filePicker.Styles = styles
 		return m, nil
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		if key.Matches(msg, m.keyMap.Close) {
 			return m, util.CmdHandler(dialogs.CloseDialogMsg{})
 		}
@@ -184,9 +185,10 @@ func (m *model) View() string {
 }
 
 func (m *model) currentImage() string {
+	highlightedPath := compat_filepicker.GetHighlightedPath(&m.filePicker)
 	for _, ext := range m.filePicker.AllowedTypes {
-		if strings.HasSuffix(m.filePicker.HighlightedPath(), ext) {
-			return m.filePicker.HighlightedPath()
+		if strings.HasSuffix(highlightedPath, ext) {
+			return highlightedPath
 		}
 	}
 	return ""
@@ -202,7 +204,7 @@ func (m *model) imagePreview() string {
 		imgPreview := t.S().Base.
 			Width(w - padding).
 			Height(h - padding).
-			Background(t.BgOverlay)
+			Background(styles.TC(t.BgOverlay))
 
 		return m.imagePreviewStyle().Render(imgPreview.Render())
 	}
@@ -227,7 +229,7 @@ func (m *model) style() lipgloss.Style {
 	return t.S().Base.
 		Width(m.width).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(t.BorderFocus)
+		BorderForeground(styles.TC(t.BorderFocus))
 }
 
 // ID implements FilePicker.
