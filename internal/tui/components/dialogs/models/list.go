@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/uglyswap/crush/internal/catwalk"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/tui/exp/list"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 )
 
 type listModel = list.FilterableGroupList[list.CompletionItem[ModelOption]]
@@ -88,8 +88,11 @@ func (m *ModelListComponent) View() string {
 	return m.list.View()
 }
 
-func (m *ModelListComponent) Cursor() *tea.Cursor {
-	return m.list.Cursor()
+func (m *ModelListComponent) Cursor() *util.Cursor {
+	if cursorProvider, ok := interface{}(m.list).(util.CursorProvider); ok {
+		return cursorProvider.Cursor()
+	}
+	return nil
 }
 
 func (m *ModelListComponent) SetSize(width, height int) tea.Cmd {
@@ -127,7 +130,7 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 	}
 	recentItems := cfg.RecentModels[selectedType]
 
-	configuredIcon := t.S().Base.Foreground(t.Success).Render(styles.CheckIcon)
+	configuredIcon := t.S().Base.Foreground(styles.TC(t.Success)).Render(styles.CheckIcon)
 	configured := fmt.Sprintf("%s %s", configuredIcon, t.S().Subtle.Render("Configured"))
 
 	// Create a map to track which providers we've already added

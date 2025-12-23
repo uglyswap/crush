@@ -5,23 +5,25 @@ import (
 	"fmt"
 	"time"
 
-	"charm.land/bubbles/v2/help"
-	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/spinner"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	hyperp "github.com/charmbracelet/crush/internal/agent/hyper"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/claude"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/copilot"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/hyper"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/uglyswap/crush/internal/catwalk"
+	hyperp "github.com/uglyswap/crush/internal/agent/hyper"
+	compat_tea "github.com/uglyswap/crush/internal/compat/bubbletea"
+	compat_textinput "github.com/uglyswap/crush/internal/compat/bubbles/textinput"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/claude"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/copilot"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/hyper"
+	"github.com/uglyswap/crush/internal/tui/exp/list"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 )
 
 const (
@@ -132,7 +134,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		m.wWidth = msg.Width
 		m.wHeight = msg.Height
 		m.apiKeyInput.SetWidth(m.width - 2)
-		m.help.SetWidth(m.width - 2)
+		m.help.Width = m.width - 2
 		m.claudeAuthMethodChooser.SetWidth(m.width - 2)
 		return m, m.modelList.SetSize(m.listWidth(), m.listHeight())
 	case APIKeyStateChangeMsg:
@@ -171,7 +173,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	case claude.AuthenticationCompleteMsg:
 		return m, util.CmdHandler(dialogs.CloseDialogMsg{})
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		switch {
 		// Handle Hyper device flow keys
 		case key.Matches(msg, key.NewBinding(key.WithKeys("c", "C"))) && m.showHyperDeviceFlow:
@@ -179,14 +181,8 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("c", "C"))) && m.showCopilotDeviceFlow:
 			return m, m.copilotDeviceFlow.CopyCode()
 		case key.Matches(msg, key.NewBinding(key.WithKeys("c", "C"))) && m.showClaudeOAuth2 && m.claudeOAuth2.State == claude.OAuthStateURL:
-			return m, tea.Sequence(
-				tea.SetClipboard(m.claudeOAuth2.URL),
-				func() tea.Msg {
-					_ = clipboard.WriteAll(m.claudeOAuth2.URL)
-					return nil
-				},
-				util.ReportInfo("URL copied to clipboard"),
-			)
+			_ = clipboard.WriteAll(m.claudeOAuth2.URL)
+			return m, util.ReportInfo("URL copied to clipboard")
 		case key.Matches(msg, m.keyMap.Choose) && m.showClaudeAuthMethodChooser:
 			m.claudeAuthMethodChooser.ToggleChoice()
 			return m, nil
@@ -392,7 +388,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
-	case tea.PasteMsg:
+	case compat_tea.PasteMsg:
 		switch {
 		case m.showClaudeOAuth2:
 			u, cmd := m.claudeOAuth2.Update(msg)
@@ -530,7 +526,7 @@ func (m *modelDialogCmp) View() string {
 	return m.style().Render(content)
 }
 
-func (m *modelDialogCmp) Cursor() *tea.Cursor {
+func (m *modelDialogCmp) Cursor() *util.Cursor {
 	if m.showHyperDeviceFlow && m.hyperDeviceFlow != nil {
 		return m.hyperDeviceFlow.Cursor()
 	}
@@ -541,7 +537,8 @@ func (m *modelDialogCmp) Cursor() *tea.Cursor {
 		return nil
 	}
 	if m.showClaudeOAuth2 {
-		if cursor := m.claudeOAuth2.CodeInput.Cursor(); cursor != nil {
+		if tiCursor := compat_textinput.GetCursorPosition(&m.claudeOAuth2.CodeInput); tiCursor != nil {
+			cursor := &util.Cursor{X: tiCursor.X, Y: tiCursor.Y}
 			cursor.Y += 2 // FIXME(@andreynering): Why do we need this?
 			return m.moveCursor(cursor)
 		}
@@ -568,7 +565,7 @@ func (m *modelDialogCmp) style() lipgloss.Style {
 	return t.S().Base.
 		Width(m.width).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(t.BorderFocus)
+		BorderForeground(styles.TC(t.BorderFocus))
 }
 
 func (m *modelDialogCmp) listWidth() int {
@@ -586,7 +583,7 @@ func (m *modelDialogCmp) Position() (int, int) {
 	return row, col
 }
 
-func (m *modelDialogCmp) moveCursor(cursor *tea.Cursor) *tea.Cursor {
+func (m *modelDialogCmp) moveCursor(cursor *util.Cursor) *util.Cursor {
 	row, col := m.Position()
 	if m.needsAPIKey {
 		offset := row + 3 // Border + title + API key input offset
@@ -610,9 +607,9 @@ func (m *modelDialogCmp) modelTypeRadio() string {
 	iconSelected := "◉"
 	iconUnselected := "○"
 	if m.modelList.GetModelType() == LargeModelType {
-		return t.S().Base.Foreground(t.FgHalfMuted).Render(iconSelected + " " + choices[0] + "  " + iconUnselected + " " + choices[1])
+		return t.S().Base.Foreground(styles.TC(t.FgHalfMuted)).Render(iconSelected + " " + choices[0] + "  " + iconUnselected + " " + choices[1])
 	}
-	return t.S().Base.Foreground(t.FgHalfMuted).Render(iconUnselected + " " + choices[0] + "  " + iconSelected + " " + choices[1])
+	return t.S().Base.Foreground(styles.TC(t.FgHalfMuted)).Render(iconUnselected + " " + choices[0] + "  " + iconSelected + " " + choices[1])
 }
 
 func (m *modelDialogCmp) isProviderConfigured(providerID string) bool {

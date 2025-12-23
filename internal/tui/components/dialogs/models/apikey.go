@@ -3,14 +3,15 @@ package models
 import (
 	"fmt"
 
-	"charm.land/bubbles/v2/spinner"
-	"charm.land/bubbles/v2/textinput"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/home"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/config"
+	compat_textinput "github.com/uglyswap/crush/internal/compat/bubbles/textinput"
+	"github.com/uglyswap/crush/internal/home"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 )
 
 type APIKeyInputState int
@@ -41,9 +42,9 @@ func NewAPIKeyInput() *APIKeyInput {
 
 	ti := textinput.New()
 	ti.Placeholder = "Enter your API key..."
-	ti.SetVirtualCursor(false)
+	compat_textinput.SetVirtualCursorOnModel(&ti, false)
 	ti.Prompt = "> "
-	ti.SetStyles(t.S().TextInput)
+	compat_textinput.SetStylesOnModel(&ti, t.S().TextInput)
 	ti.Focus()
 
 	return &APIKeyInput{
@@ -51,7 +52,7 @@ func NewAPIKeyInput() *APIKeyInput {
 		state: APIKeyInputStateInitial,
 		spinner: spinner.New(
 			spinner.WithSpinner(spinner.Dot),
-			spinner.WithStyle(t.S().Base.Foreground(t.Green)),
+			spinner.WithStyle(t.S().Base.Foreground(styles.TC(t.Green))),
 		),
 		providerName: "Provider",
 		showTitle:    true,
@@ -105,15 +106,15 @@ func (a *APIKeyInput) updateStatePresentation() {
 	t := styles.CurrentTheme()
 
 	prefixStyle := t.S().Base.
-		Foreground(t.Primary)
-	accentStyle := t.S().Base.Foreground(t.Green).Bold(true)
-	errorStyle := t.S().Base.Foreground(t.Cherry)
+		Foreground(styles.TC(t.Primary))
+	accentStyle := t.S().Base.Foreground(styles.TC(t.Green)).Bold(true)
+	errorStyle := t.S().Base.Foreground(styles.TC(t.Cherry))
 
 	switch a.state {
 	case APIKeyInputStateInitial:
 		titlePrefix := prefixStyle.Render("Enter your ")
 		a.title = titlePrefix + accentStyle.Render(a.providerName+" API Key") + prefixStyle.Render(".")
-		a.input.SetStyles(t.S().TextInput)
+		compat_textinput.SetStylesOnModel(&a.input, t.S().TextInput)
 		a.input.Prompt = "> "
 	case APIKeyInputStateVerifying:
 		titlePrefix := prefixStyle.Render("Verifying your ")
@@ -128,15 +129,15 @@ func (a *APIKeyInput) updateStatePresentation() {
 		ts := t.S().TextInput
 		// make the blurred state be the same
 		ts.Blurred.Prompt = ts.Focused.Prompt
-		a.input.SetStyles(ts)
+		compat_textinput.SetStylesOnModel(&a.input, ts)
 		a.input.Prompt = styles.CheckIcon + " "
 		a.input.Blur()
 	case APIKeyInputStateError:
 		a.title = errorStyle.Render("Invalid ") + accentStyle.Render(a.providerName+" API Key") + errorStyle.Render(". Try again?")
 		ts := t.S().TextInput
-		ts.Focused.Prompt = ts.Focused.Prompt.Foreground(t.Cherry)
+		ts.Focused.Prompt = ts.Focused.Prompt.Foreground(styles.TC(t.Cherry))
 		a.input.Focus()
-		a.input.SetStyles(ts)
+		compat_textinput.SetStylesOnModel(&a.input, ts)
 		a.input.Prompt = styles.ErrorIcon + " "
 	}
 }
@@ -171,12 +172,21 @@ func (a *APIKeyInput) View() string {
 	return content
 }
 
-func (a *APIKeyInput) Cursor() *tea.Cursor {
-	cursor := a.input.Cursor()
-	if cursor != nil && a.showTitle {
-		cursor.Y += 2 // Adjust for title and spacing
+func (a *APIKeyInput) Cursor() *util.Cursor {
+	// Standard textinput doesn't have Cursor() method
+	// Return position based on input state
+	if a.input.Focused() {
+		return &util.Cursor{
+			X: len(a.input.Prompt) + a.input.Position(),
+			Y: func() int {
+				if a.showTitle {
+					return 2
+				}
+				return 0
+			}(),
+		}
 	}
-	return cursor
+	return nil
 }
 
 func (a *APIKeyInput) Value() string {
@@ -192,7 +202,7 @@ func (a *APIKeyInput) Tick() tea.Cmd {
 
 func (a *APIKeyInput) SetWidth(width int) {
 	a.width = width
-	a.input.SetWidth(width - 4)
+	compat_textinput.SetWidthOnModel(&a.input, width-4)
 }
 
 func (a *APIKeyInput) Reset() {
