@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
-	"charm.land/fantasy/providers/anthropic"
-	"charm.land/fantasy/providers/google"
-	"charm.land/fantasy/providers/openai"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
+	"github.com/uglyswap/crush/internal/catwalk"
+	"github.com/uglyswap/crush/pkg/fantasy"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/anthropic"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/google"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/openai"
 )
 
 type MessageRole string
