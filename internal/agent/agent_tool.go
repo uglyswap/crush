@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 
-	"charm.land/fantasy"
+	"github.com/uglyswap/crush/pkg/fantasy"
 
-	"github.com/charmbracelet/crush/internal/agent/prompt"
-	"github.com/charmbracelet/crush/internal/agent/tools"
-	"github.com/charmbracelet/crush/internal/config"
+	"github.com/uglyswap/crush/internal/agent/prompt"
+	"github.com/uglyswap/crush/internal/agent/tools"
+	"github.com/uglyswap/crush/internal/config"
 )
 
 //go:embed templates/agent_tool.md
