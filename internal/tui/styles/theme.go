@@ -5,17 +5,16 @@ import (
 	"image/color"
 	"strings"
 
-	"charm.land/bubbles/v2/filepicker"
-	"charm.land/bubbles/v2/help"
-	"charm.land/bubbles/v2/textarea"
-	"charm.land/bubbles/v2/textinput"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/glamour/v2/ansi"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/exp/diffview"
-	"github.com/charmbracelet/x/exp/charmtone"
+	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/glamour/ansi"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/rivo/uniseg"
+	"github.com/uglyswap/crush/internal/charmtone"
+	"github.com/uglyswap/crush/internal/compat/bubbles/textarea"
+	"github.com/uglyswap/crush/internal/compat/bubbles/textinput"
+	"github.com/uglyswap/crush/internal/tui/exp/diffview"
 )
 
 const (
@@ -23,6 +22,27 @@ const (
 	defaultListLevelIndent = 4
 	defaultMargin          = 2
 )
+
+// tc converts a color.Color to lipgloss.TerminalColor for use with lipgloss methods.
+// For internal use within the styles package.
+func tc(c color.Color) lipgloss.TerminalColor {
+	return TC(c)
+}
+
+// TC converts a color.Color to lipgloss.TerminalColor for use with lipgloss methods.
+// This is the exported version for use by other packages.
+func TC(c color.Color) lipgloss.TerminalColor {
+	if c == nil {
+		return lipgloss.NoColor{}
+	}
+	// If it has a Hex method (like charmtone.Color), use it directly
+	if hex, ok := c.(interface{ Hex() string }); ok {
+		return lipgloss.Color(hex.Hex())
+	}
+	// Otherwise convert via RGBA
+	r, g, b, _ := c.RGBA()
+	return lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8))
+}
 
 type Theme struct {
 	Name   string
@@ -142,51 +162,51 @@ func (t *Theme) S() *Styles {
 
 func (t *Theme) buildStyles() *Styles {
 	base := lipgloss.NewStyle().
-		Foreground(t.FgBase)
+		Foreground(tc(t.FgBase))
 	return &Styles{
 		Base: base,
 
-		SelectedBase: base.Background(t.Primary),
+		SelectedBase: base.Background(tc(t.Primary)),
 
 		Title: base.
-			Foreground(t.Accent).
+			Foreground(tc(t.Accent)).
 			Bold(true),
 
 		Subtitle: base.
-			Foreground(t.Secondary).
+			Foreground(tc(t.Secondary)).
 			Bold(true),
 
 		Text:         base,
-		TextSelected: base.Background(t.Primary).Foreground(t.FgSelected),
+		TextSelected: base.Background(tc(t.Primary)).Foreground(tc(t.FgSelected)),
 
-		Muted: base.Foreground(t.FgMuted),
+		Muted: base.Foreground(tc(t.FgMuted)),
 
-		Subtle: base.Foreground(t.FgSubtle),
+		Subtle: base.Foreground(tc(t.FgSubtle)),
 
-		Success: base.Foreground(t.Success),
+		Success: base.Foreground(tc(t.Success)),
 
-		Error: base.Foreground(t.Error),
+		Error: base.Foreground(tc(t.Error)),
 
-		Warning: base.Foreground(t.Warning),
+		Warning: base.Foreground(tc(t.Warning)),
 
-		Info: base.Foreground(t.Info),
+		Info: base.Foreground(tc(t.Info)),
 
 		TextInput: textinput.Styles{
 			Focused: textinput.StyleState{
 				Text:        base,
-				Placeholder: base.Foreground(t.FgSubtle),
-				Prompt:      base.Foreground(t.Tertiary),
-				Suggestion:  base.Foreground(t.FgSubtle),
+				Placeholder: base.Foreground(tc(t.FgSubtle)),
+				Prompt:      base.Foreground(tc(t.Tertiary)),
+				Suggestion:  base.Foreground(tc(t.FgSubtle)),
 			},
 			Blurred: textinput.StyleState{
-				Text:        base.Foreground(t.FgMuted),
-				Placeholder: base.Foreground(t.FgSubtle),
-				Prompt:      base.Foreground(t.FgMuted),
-				Suggestion:  base.Foreground(t.FgSubtle),
+				Text:        base.Foreground(tc(t.FgMuted)),
+				Placeholder: base.Foreground(tc(t.FgSubtle)),
+				Prompt:      base.Foreground(tc(t.FgMuted)),
+				Suggestion:  base.Foreground(tc(t.FgSubtle)),
 			},
 			Cursor: textinput.CursorStyle{
 				Color: t.Secondary,
-				Shape: tea.CursorBlock,
+				Shape: textinput.CursorBlock,
 				Blink: true,
 			},
 		},
@@ -194,24 +214,24 @@ func (t *Theme) buildStyles() *Styles {
 			Focused: textarea.StyleState{
 				Base:             base,
 				Text:             base,
-				LineNumber:       base.Foreground(t.FgSubtle),
+				LineNumber:       base.Foreground(tc(t.FgSubtle)),
 				CursorLine:       base,
-				CursorLineNumber: base.Foreground(t.FgSubtle),
-				Placeholder:      base.Foreground(t.FgSubtle),
-				Prompt:           base.Foreground(t.Tertiary),
+				CursorLineNumber: base.Foreground(tc(t.FgSubtle)),
+				Placeholder:      base.Foreground(tc(t.FgSubtle)),
+				Prompt:           base.Foreground(tc(t.Tertiary)),
 			},
 			Blurred: textarea.StyleState{
 				Base:             base,
-				Text:             base.Foreground(t.FgMuted),
-				LineNumber:       base.Foreground(t.FgMuted),
+				Text:             base.Foreground(tc(t.FgMuted)),
+				LineNumber:       base.Foreground(tc(t.FgMuted)),
 				CursorLine:       base,
-				CursorLineNumber: base.Foreground(t.FgMuted),
-				Placeholder:      base.Foreground(t.FgSubtle),
-				Prompt:           base.Foreground(t.FgMuted),
+				CursorLineNumber: base.Foreground(tc(t.FgMuted)),
+				Placeholder:      base.Foreground(tc(t.FgSubtle)),
+				Prompt:           base.Foreground(tc(t.FgMuted)),
 			},
 			Cursor: textarea.CursorStyle{
 				Color: t.Secondary,
-				Shape: tea.CursorBlock,
+				Shape: textarea.CursorBlock,
 				Blink: true,
 			},
 		},
@@ -426,37 +446,37 @@ func (t *Theme) buildStyles() *Styles {
 		},
 
 		Help: help.Styles{
-			ShortKey:       base.Foreground(t.FgMuted),
-			ShortDesc:      base.Foreground(t.FgSubtle),
-			ShortSeparator: base.Foreground(t.Border),
-			Ellipsis:       base.Foreground(t.Border),
-			FullKey:        base.Foreground(t.FgMuted),
-			FullDesc:       base.Foreground(t.FgSubtle),
-			FullSeparator:  base.Foreground(t.Border),
+			ShortKey:       base.Foreground(tc(t.FgMuted)),
+			ShortDesc:      base.Foreground(tc(t.FgSubtle)),
+			ShortSeparator: base.Foreground(tc(t.Border)),
+			Ellipsis:       base.Foreground(tc(t.Border)),
+			FullKey:        base.Foreground(tc(t.FgMuted)),
+			FullDesc:       base.Foreground(tc(t.FgSubtle)),
+			FullSeparator:  base.Foreground(tc(t.Border)),
 		},
 
 		Diff: diffview.Style{
 			DividerLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(t.FgHalfMuted).
-					Background(t.BgBaseLighter),
+					Foreground(tc(t.FgHalfMuted)).
+					Background(tc(t.BgBaseLighter)),
 				Code: lipgloss.NewStyle().
-					Foreground(t.FgHalfMuted).
-					Background(t.BgBaseLighter),
+					Foreground(tc(t.FgHalfMuted)).
+					Background(tc(t.BgBaseLighter)),
 			},
 			MissingLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Background(t.BgBaseLighter),
+					Background(tc(t.BgBaseLighter)),
 				Code: lipgloss.NewStyle().
-					Background(t.BgBaseLighter),
+					Background(tc(t.BgBaseLighter)),
 			},
 			EqualLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(t.FgMuted).
-					Background(t.BgBase),
+					Foreground(tc(t.FgMuted)).
+					Background(tc(t.BgBase)),
 				Code: lipgloss.NewStyle().
-					Foreground(t.FgMuted).
-					Background(t.BgBase),
+					Foreground(tc(t.FgMuted)).
+					Background(tc(t.BgBase)),
 			},
 			InsertLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
@@ -480,17 +500,17 @@ func (t *Theme) buildStyles() *Styles {
 			},
 		},
 		FilePicker: filepicker.Styles{
-			DisabledCursor:   base.Foreground(t.FgMuted),
-			Cursor:           base.Foreground(t.FgBase),
-			Symlink:          base.Foreground(t.FgSubtle),
-			Directory:        base.Foreground(t.Primary),
-			File:             base.Foreground(t.FgBase),
-			DisabledFile:     base.Foreground(t.FgMuted),
-			DisabledSelected: base.Background(t.BgOverlay).Foreground(t.FgMuted),
-			Permission:       base.Foreground(t.FgMuted),
-			Selected:         base.Background(t.Primary).Foreground(t.FgBase),
-			FileSize:         base.Foreground(t.FgMuted),
-			EmptyDirectory:   base.Foreground(t.FgMuted).PaddingLeft(2).SetString("Empty directory"),
+			DisabledCursor:   base.Foreground(tc(t.FgMuted)),
+			Cursor:           base.Foreground(tc(t.FgBase)),
+			Symlink:          base.Foreground(tc(t.FgSubtle)),
+			Directory:        base.Foreground(tc(t.Primary)),
+			File:             base.Foreground(tc(t.FgBase)),
+			DisabledFile:     base.Foreground(tc(t.FgMuted)),
+			DisabledSelected: base.Background(tc(t.BgOverlay)).Foreground(tc(t.FgMuted)),
+			Permission:       base.Foreground(tc(t.FgMuted)),
+			Selected:         base.Background(tc(t.Primary)).Foreground(tc(t.FgBase)),
+			FileSize:         base.Foreground(tc(t.FgMuted)),
+			EmptyDirectory:   base.Foreground(tc(t.FgMuted)).PaddingLeft(2).SetString("Empty directory"),
 		},
 	}
 }
@@ -604,7 +624,7 @@ func ForegroundGrad(input string, bold bool, color1, color2 color.Color) []strin
 	}
 	t := CurrentTheme()
 	if len(input) == 1 {
-		style := t.S().Base.Foreground(color1)
+		style := t.S().Base.Foreground(tc(color1))
 		if bold {
 			style.Bold(true)
 		}
@@ -618,7 +638,7 @@ func ForegroundGrad(input string, bold bool, color1, color2 color.Color) []strin
 
 	ramp := blendColors(len(clusters), color1, color2)
 	for i, c := range ramp {
-		style := t.S().Base.Foreground(c)
+		style := t.S().Base.Foreground(tc(c))
 		if bold {
 			style.Bold(true)
 		}

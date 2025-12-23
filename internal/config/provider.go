@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/catwalk/pkg/embedded"
-	"github.com/charmbracelet/crush/internal/agent/hyper"
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/home"
+	"github.com/uglyswap/crush/internal/catwalk"
+	"github.com/uglyswap/crush/internal/catwalk/embedded"
+	"github.com/uglyswap/crush/internal/agent/hyper"
+	"github.com/uglyswap/crush/internal/csync"
+	"github.com/uglyswap/crush/internal/home"
 	"github.com/charmbracelet/x/etag"
 )
 
