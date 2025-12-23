@@ -219,6 +219,134 @@ Crush automatically increases thinking depth when it detects:
 
 ---
 
+## 🤖 Subagent Execution Engine
+
+Crush features a powerful subagent execution system that connects specialized agents to the LLM with squad-specific prompts and quality scoring.
+
+### Executor Architecture
+
+The executor (`internal/orchestrator/executor.go`) is the core component that:
+1. Builds context-aware prompts from templates
+2. Configures thinking levels based on task complexity
+3. Parses structured YAML responses
+4. Scores agent outputs on 4 dimensions
+
+```go
+// Create an executor with custom configuration
+executor := NewExecutor(ExecutorConfig{
+    ThinkingLevel:   ThinkingLevelThinkHard,
+    MaxOutputTokens: 8192,
+    Temperature:     0.7,
+})
+
+// Execute an agent
+result, err := executor.ExecuteAgent(ctx, agent, agentContext)
+```
+
+### Thinking Levels (Internal)
+
+```go
+type ThinkingLevel string
+
+const (
+    ThinkingLevelNone        ThinkingLevel = ""           // No extended thinking
+    ThinkingLevelThink       ThinkingLevel = "think"      // 1024 tokens
+    ThinkingLevelThinkHard   ThinkingLevel = "think_hard" // 4096 tokens
+    ThinkingLevelThinkHarder ThinkingLevel = "think_harder" // 16384 tokens
+    ThinkingLevelUltrathink  ThinkingLevel = "ultrathink" // 32768 tokens
+)
+```
+
+### Agent Quality Scoring
+
+Every agent output is scored on 4 weighted dimensions:
+
+| Dimension | Weight | Description |
+|-----------|--------|-------------|
+| **Completeness** | 30% | Did the agent address all aspects of the task? |
+| **Precision** | 30% | Is the output accurate and free of errors? |
+| **Coherence** | 25% | Is the reasoning logical and well-structured? |
+| **Context Retention** | 15% | Does it maintain consistency with prior context? |
+
+```go
+type AgentScore struct {
+    Completeness     float64 // 0-100
+    Precision        float64 // 0-100
+    Coherence        float64 // 0-100
+    ContextRetention float64 // 0-100
+}
+
+// Weighted total calculation
+total := (score.Completeness * 0.30) +
+         (score.Precision * 0.30) +
+         (score.Coherence * 0.25) +
+         (score.ContextRetention * 0.15)
+```
+
+### Agent Output Format
+
+Agents respond in a structured YAML format for reliable parsing:
+
+```yaml
+agent_output:
+  status: success  # success, partial, blocked, failed
+  confidence: 0.92
+  summary: "Brief description of what was accomplished"
+  artifacts:
+    - type: code
+      path: "src/components/Button.tsx"
+      content: |
+        // Generated code here
+    - type: suggestion
+      content: "Consider adding unit tests"
+  next_steps:
+    - "Run tests to verify"
+    - "Review for edge cases"
+  blockers: []
+  handoff_context: "Context for next agent if needed"
+```
+
+### Squad-Specific Prompts
+
+Each squad has a specialized system prompt (`internal/orchestrator/prompts.go`):
+
+| Squad | Focus Areas |
+|-------|-------------|
+| **Frontend** | React, TypeScript, accessibility, responsive design, performance |
+| **Backend** | API design, database optimization, security, scalability |
+| **Data** | Schema design, query optimization, analytics, data pipelines |
+| **Business** | Product strategy, user research, compliance, growth metrics |
+| **DevOps** | Infrastructure, CI/CD, monitoring, security automation |
+| **QA** | Test coverage, edge cases, regression prevention, quality gates |
+| **Performance** | Profiling, optimization, caching, bundle size |
+| **Documentation** | API docs, tutorials, code comments, architecture diagrams |
+| **Accessibility** | WCAG compliance, screen readers, keyboard navigation, i18n |
+| **AI/ML** | Model integration, prompt engineering, ML pipelines |
+
+### Automatic Thinking Level Selection
+
+The executor automatically selects thinking levels based on task complexity:
+
+```go
+func GetThinkingLevelForTask(task *Task, keywords []string) ThinkingLevel {
+    taskLower := strings.ToLower(task.Title + " " + task.Description)
+    
+    // Ultra-complex tasks
+    ultrathinkKeywords := []string{"architecture", "migration", "security audit", "refactor"}
+    for _, kw := range ultrathinkKeywords {
+        if strings.Contains(taskLower, kw) {
+            return ThinkingLevelUltrathink
+        }
+    }
+    
+    // Complex tasks
+    thinkHarderKeywords := []string{"debug", "performance", "optimize", "complex"}
+    // ... and so on
+}
+```
+
+---
+
 ## 🏗️ Architecture
 
 ```
@@ -231,6 +359,8 @@ crush/
 │   ├── orchestrator/       # Multi-agent orchestration
 │   │   ├── orchestrator.go # Core orchestrator
 │   │   ├── agent.go        # 28 specialized agents
+│   │   ├── executor.go     # Subagent execution engine
+│   │   ├── prompts.go      # Squad-specific prompts
 │   │   ├── handoff.go      # Handoff protocol
 │   │   ├── scoring.go      # Quality scoring
 │   │   ├── trust.go        # Trust cascade
@@ -319,6 +449,34 @@ Crush will ask clarifying questions when needed:
     Other
 ```
 
+### Subagent Execution
+
+```go
+// Programmatic usage example
+import "github.com/uglyswap/crush/internal/orchestrator"
+
+// Create orchestrator
+orch := orchestrator.NewOrchestrator()
+
+// Define task
+task := &orchestrator.Task{
+    Title:       "Implement user authentication",
+    Description: "Add JWT-based auth with refresh tokens",
+    Type:        orchestrator.TaskTypeBackend,
+}
+
+// Execute with automatic agent selection
+result, err := orch.ExecuteTask(ctx, task)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Check quality score
+if result.Score.WeightedTotal() < 70 {
+    log.Warn("Quality below threshold, review recommended")
+}
+```
+
 ---
 
 ## 🔧 Creating Custom Skills
@@ -392,6 +550,9 @@ go test ./internal/orchestrator/...
 - [x] Caching system
 - [x] Notebook editing
 - [x] Extended thinking mode
+- [x] Subagent execution engine
+- [x] Squad-specific prompts
+- [x] Quality scoring system
 - [ ] Remote MCP server support
 - [ ] Plugin system
 - [ ] Web UI
