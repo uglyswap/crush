@@ -2,13 +2,12 @@ package diffview
 
 import (
 	"fmt"
-	"image/color"
 	"io"
 	"strings"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/alecthomas/chroma/v2"
-	"github.com/charmbracelet/crush/internal/ansiext"
+	"github.com/uglyswap/crush/internal/ansiext"
 )
 
 var _ chroma.Formatter = chromaFormatter{}
@@ -16,7 +15,7 @@ var _ chroma.Formatter = chromaFormatter{}
 // chromaFormatter is a custom formatter for Chroma that uses Lip Gloss for
 // foreground styling, while keeping a forced background color.
 type chromaFormatter struct {
-	bgColor color.Color
+	bgColor lipgloss.TerminalColor
 }
 
 // Format implements the chroma.Formatter interface.

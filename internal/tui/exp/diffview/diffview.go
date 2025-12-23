@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/aymanbagabas/go-udiff"
@@ -769,6 +769,16 @@ func (dv *DiffView) getChromaLexer() chroma.Lexer {
 
 func (dv *DiffView) getChromaFormatter(bgColor color.Color) chroma.Formatter {
 	return chromaFormatter{
-		bgColor: bgColor,
+		bgColor: colorToTerminalColor(bgColor),
 	}
+}
+
+// colorToTerminalColor converts a standard color.Color to a lipgloss.TerminalColor.
+func colorToTerminalColor(c color.Color) lipgloss.TerminalColor {
+	if c == nil {
+		return lipgloss.NoColor{}
+	}
+	r, g, b, _ := c.RGBA()
+	// RGBA returns 16-bit values, so we need to scale to 8-bit
+	return lipgloss.Color(fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8))
 }
