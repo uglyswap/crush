@@ -2,7 +2,6 @@ package agent
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,29 +14,28 @@ import (
 	"slices"
 	"strings"
 
-	"charm.land/fantasy"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/agent/hyper"
-	"github.com/charmbracelet/crush/internal/agent/prompt"
-	"github.com/charmbracelet/crush/internal/agent/tools"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/history"
-	"github.com/charmbracelet/crush/internal/log"
-	"github.com/charmbracelet/crush/internal/lsp"
-	"github.com/charmbracelet/crush/internal/message"
-	"github.com/charmbracelet/crush/internal/permission"
-	"github.com/charmbracelet/crush/internal/session"
+	"github.com/uglyswap/crush/pkg/fantasy"
+	"github.com/uglyswap/crush/internal/catwalk"
+	"github.com/uglyswap/crush/internal/agent/hyper"
+	"github.com/uglyswap/crush/internal/agent/prompt"
+	"github.com/uglyswap/crush/internal/agent/tools"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/csync"
+	"github.com/uglyswap/crush/internal/history"
+	"github.com/uglyswap/crush/internal/log"
+	"github.com/uglyswap/crush/internal/lsp"
+	"github.com/uglyswap/crush/internal/message"
+	"github.com/uglyswap/crush/internal/permission"
+	"github.com/uglyswap/crush/internal/session"
 	"golang.org/x/sync/errgroup"
 
-	"charm.land/fantasy/providers/anthropic"
-	"charm.land/fantasy/providers/azure"
-	"charm.land/fantasy/providers/bedrock"
-	"charm.land/fantasy/providers/google"
-	"charm.land/fantasy/providers/openai"
-	"charm.land/fantasy/providers/openaicompat"
-	"charm.land/fantasy/providers/openrouter"
-	openaisdk "github.com/openai/openai-go/v2/option"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/anthropic"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/azure"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/bedrock"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/google"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/openai"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/openaicompat"
+	"github.com/uglyswap/crush/pkg/fantasy/providers/openrouter"
 	"github.com/qjebbs/go-jsons"
 )
 
@@ -206,12 +204,8 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) fantasy.
 		}
 	}
 
-	if model.CatwalkCfg.Options.ProviderOptions != nil {
-		data, err := json.Marshal(model.CatwalkCfg.Options.ProviderOptions)
-		if err == nil {
-			catwalkOpts = data
-		}
-	}
+	// Note: catwalk.Model doesn't have nested Options, provider options are at provider level
+	// If there were catwalk-level provider options, they would be merged here
 
 	readers := []io.Reader{
 		bytes.NewReader(catwalkOpts),
@@ -307,11 +301,15 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) fantasy.
 
 func mergeCallOptions(model Model, cfg config.ProviderConfig) (fantasy.ProviderOptions, *float64, *float64, *int64, *float64, *float64) {
 	modelOptions := getProviderOptions(model, cfg)
-	temp := cmp.Or(model.ModelCfg.Temperature, model.CatwalkCfg.Options.Temperature)
-	topP := cmp.Or(model.ModelCfg.TopP, model.CatwalkCfg.Options.TopP)
-	topK := cmp.Or(model.ModelCfg.TopK, model.CatwalkCfg.Options.TopK)
-	freqPenalty := cmp.Or(model.ModelCfg.FrequencyPenalty, model.CatwalkCfg.Options.FrequencyPenalty)
-	presPenalty := cmp.Or(model.ModelCfg.PresencePenalty, model.CatwalkCfg.Options.PresencePenalty)
+	// Use model config values, falling back to catwalk defaults if set
+	temp := model.ModelCfg.Temperature
+	if temp == nil && model.CatwalkCfg.Temperature != 0 {
+		temp = &model.CatwalkCfg.Temperature
+	}
+	topP := model.ModelCfg.TopP
+	topK := model.ModelCfg.TopK
+	freqPenalty := model.ModelCfg.FrequencyPenalty
+	presPenalty := model.ModelCfg.PresencePenalty
 	return modelOptions, temp, topP, topK, freqPenalty, presPenalty
 }
 
@@ -400,7 +398,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 
 	var filteredTools []fantasy.AgentTool
 	for _, tool := range allTools {
-		if slices.Contains(agent.AllowedTools, tool.Info().Name) {
+		if slices.Contains(agent.AllowedTools, tool.Name()) {
 			filteredTools = append(filteredTools, tool)
 		}
 	}
@@ -434,7 +432,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 		slog.Debug("MCP not allowed", "tool", tool.Name(), "agent", agent.Name)
 	}
 	slices.SortFunc(filteredTools, func(a, b fantasy.AgentTool) int {
-		return strings.Compare(a.Info().Name, b.Info().Name)
+		return strings.Compare(a.Name(), b.Name())
 	})
 	return filteredTools, nil
 }
@@ -595,8 +593,8 @@ func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers 
 		opts = append(opts, openaicompat.WithHeaders(headers))
 	}
 
-	for extraKey, extraValue := range extraBody {
-		opts = append(opts, openaicompat.WithSDKOptions(openaisdk.WithJSONSet(extraKey, extraValue)))
+	if len(extraBody) > 0 {
+		opts = append(opts, openaicompat.WithSDKOptions(&openaicompat.SDKOptions{ExtraBody: extraBody}))
 	}
 
 	return openaicompat.New(opts...)
