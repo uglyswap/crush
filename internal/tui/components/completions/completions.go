@@ -3,12 +3,12 @@ package completions
 import (
 	"strings"
 
-	"charm.land/bubbles/v2/key"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/tui/exp/list"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 )
 
 const maxCompletionsHeight = 10
@@ -117,7 +117,7 @@ func (c *completionsCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		c.wWidth, c.wHeight = msg.Width, msg.Height
 		return c, nil
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, c.keyMap.Up):
 			u, cmd := c.list.Update(msg)
@@ -261,7 +261,7 @@ func (c *completionsCmp) View() string {
 	style := t.S().Base.
 		Width(c.width).
 		Height(c.height).
-		Background(t.BgSubtle)
+		Background(styles.TC(t.BgSubtle))
 
 	return style.Render(c.list.View())
 }

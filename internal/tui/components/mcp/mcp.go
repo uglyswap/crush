@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 
-	"github.com/charmbracelet/crush/internal/agent/tools/mcp"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/agent/tools/mcp"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/styles"
 )
 
 // RenderOptions contains options for rendering MCP lists.
@@ -36,7 +36,7 @@ func RenderMCPList(opts RenderOptions) []string {
 
 	mcps := config.Get().MCP.Sorted()
 	if len(mcps) == 0 {
-		mcpList = append(mcpList, t.S().Base.Foreground(t.Border).Render("None"))
+		mcpList = append(mcpList, t.S().Base.Foreground(styles.TC(t.Border)).Render("None"))
 		return mcpList
 	}
 
@@ -121,10 +121,10 @@ func RenderMCPBlock(opts RenderOptions, showTruncationIndicator bool) string {
 		if len(mcps) > opts.MaxItems {
 			remaining := len(mcps) - opts.MaxItems
 			if remaining == 1 {
-				mcpList = append(mcpList, t.S().Base.Foreground(t.FgMuted).Render("…"))
+				mcpList = append(mcpList, t.S().Base.Foreground(styles.TC(t.FgMuted)).Render("…"))
 			} else {
 				mcpList = append(mcpList,
-					t.S().Base.Foreground(t.FgSubtle).Render(fmt.Sprintf("…and %d more", remaining)),
+					t.S().Base.Foreground(styles.TC(t.FgSubtle)).Render(fmt.Sprintf("…and %d more", remaining)),
 				)
 			}
 		}

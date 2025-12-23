@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/history"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/fsext"
+	"github.com/uglyswap/crush/internal/history"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/styles"
 )
 
 // FileHistory represents a file history with initial and latest versions.
@@ -54,7 +54,7 @@ func RenderFileList(fileSlice []SessionFile, opts RenderOptions) []string {
 	}
 
 	if len(fileSlice) == 0 {
-		fileList = append(fileList, t.S().Base.Foreground(t.Border).Render("None"))
+		fileList = append(fileList, t.S().Base.Foreground(styles.TC(t.Border)).Render("None"))
 		return fileList
 	}
 
@@ -83,10 +83,10 @@ func RenderFileList(fileSlice []SessionFile, opts RenderOptions) []string {
 
 		var statusParts []string
 		if file.Additions > 0 {
-			statusParts = append(statusParts, t.S().Base.Foreground(t.Success).Render(fmt.Sprintf("+%d", file.Additions)))
+			statusParts = append(statusParts, t.S().Base.Foreground(styles.TC(t.Success)).Render(fmt.Sprintf("+%d", file.Additions)))
 		}
 		if file.Deletions > 0 {
-			statusParts = append(statusParts, t.S().Base.Foreground(t.Error).Render(fmt.Sprintf("-%d", file.Deletions)))
+			statusParts = append(statusParts, t.S().Base.Foreground(styles.TC(t.Error)).Render(fmt.Sprintf("-%d", file.Deletions)))
 		}
 
 		extraContent := strings.Join(statusParts, " ")
@@ -129,10 +129,10 @@ func RenderFileBlock(fileSlice []SessionFile, opts RenderOptions, showTruncation
 		if totalFilesWithChanges > opts.MaxItems {
 			remaining := totalFilesWithChanges - opts.MaxItems
 			if remaining == 1 {
-				fileList = append(fileList, t.S().Base.Foreground(t.FgMuted).Render("…"))
+				fileList = append(fileList, t.S().Base.Foreground(styles.TC(t.FgMuted)).Render("…"))
 			} else {
 				fileList = append(fileList,
-					t.S().Base.Foreground(t.FgSubtle).Render(fmt.Sprintf("…and %d more", remaining)),
+					t.S().Base.Foreground(styles.TC(t.FgSubtle)).Render(fmt.Sprintf("…and %d more", remaining)),
 				)
 			}
 		}
