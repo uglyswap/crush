@@ -5,30 +5,30 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/spinner"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/agent"
-	hyperp "github.com/charmbracelet/crush/internal/agent/hyper"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/home"
-	"github.com/charmbracelet/crush/internal/tui/components/chat"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/claude"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/copilot"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/hyper"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/models"
-	"github.com/charmbracelet/crush/internal/tui/components/logo"
-	lspcomponent "github.com/charmbracelet/crush/internal/tui/components/lsp"
-	"github.com/charmbracelet/crush/internal/tui/components/mcp"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
-	"github.com/charmbracelet/crush/internal/version"
+	"github.com/uglyswap/crush/internal/catwalk"
+	"github.com/uglyswap/crush/internal/agent"
+	hyperp "github.com/uglyswap/crush/internal/agent/hyper"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/home"
+	"github.com/uglyswap/crush/internal/tui/components/chat"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/components/core/layout"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/claude"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/copilot"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/hyper"
+	"github.com/uglyswap/crush/internal/tui/components/dialogs/models"
+	"github.com/uglyswap/crush/internal/tui/components/logo"
+	lspcomponent "github.com/uglyswap/crush/internal/tui/components/lsp"
+	"github.com/uglyswap/crush/internal/tui/components/mcp"
+	"github.com/uglyswap/crush/internal/tui/exp/list"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
+	"github.com/uglyswap/crush/internal/version"
 )
 
 type Splash interface {
@@ -737,7 +737,7 @@ func (s *splashCmp) View() string {
 		modelSelector := t.S().Base.AlignVertical(lipgloss.Bottom).Height(remainingHeight).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				t.S().Base.PaddingLeft(1).Foreground(t.Primary).Render("To start, let’s choose a provider and model."),
+				t.S().Base.PaddingLeft(1).Foreground(t.Primary).Render("To start, let's choose a provider and model."),
 				"",
 				modelListView,
 			),
