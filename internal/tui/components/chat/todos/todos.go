@@ -4,9 +4,9 @@ import (
 	"slices"
 	"strings"
 
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/session"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/session"
+	"github.com/uglyswap/crush/internal/tui/styles"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -43,14 +43,14 @@ func FormatTodosList(todos []session.Todo, inProgressIcon string, t *styles.Them
 
 		switch todo.Status {
 		case session.TodoStatusCompleted:
-			prefix = t.S().Base.Foreground(t.Green).Render(styles.TodoCompletedIcon) + " "
-			textStyle = t.S().Base.Foreground(t.FgBase)
+			prefix = t.S().Base.Foreground(styles.TC(t.Green)).Render(styles.TodoCompletedIcon) + " "
+			textStyle = t.S().Base.Foreground(styles.TC(t.FgBase))
 		case session.TodoStatusInProgress:
-			prefix = t.S().Base.Foreground(t.GreenDark).Render(inProgressIcon + " ")
-			textStyle = t.S().Base.Foreground(t.FgBase)
+			prefix = t.S().Base.Foreground(styles.TC(t.GreenDark)).Render(inProgressIcon + " ")
+			textStyle = t.S().Base.Foreground(styles.TC(t.FgBase))
 		default:
-			prefix = t.S().Base.Foreground(t.FgMuted).Render(styles.TodoPendingIcon) + " "
-			textStyle = t.S().Base.Foreground(t.FgBase)
+			prefix = t.S().Base.Foreground(styles.TC(t.FgMuted)).Render(styles.TodoPendingIcon) + " "
+			textStyle = t.S().Base.Foreground(styles.TC(t.FgBase))
 		}
 
 		text := todo.Content

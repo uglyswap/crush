@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/lsp"
-	"github.com/charmbracelet/crush/internal/pubsub"
-	"github.com/charmbracelet/crush/internal/session"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/config"
+	"github.com/uglyswap/crush/internal/csync"
+	"github.com/uglyswap/crush/internal/fsext"
+	"github.com/uglyswap/crush/internal/lsp"
+	"github.com/uglyswap/crush/internal/pubsub"
+	"github.com/uglyswap/crush/internal/session"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
@@ -73,7 +73,7 @@ func (h *header) View() string {
 
 	var b strings.Builder
 
-	b.WriteString(t.S().Base.Foreground(t.Secondary).Render("Charm™"))
+	b.WriteString(t.S().Base.Foreground(styles.TC(t.Secondary)).Render("Charm™"))
 	b.WriteString(gap)
 	b.WriteString(styles.ApplyBoldForegroundGrad("CRUSH", t.Secondary, t.Primary))
 	b.WriteString(gap)
@@ -88,7 +88,7 @@ func (h *header) View() string {
 		rightPadding
 
 	if remainingWidth > 0 {
-		b.WriteString(t.S().Base.Foreground(t.Primary).Render(
+		b.WriteString(t.S().Base.Foreground(styles.TC(t.Primary)).Render(
 			strings.Repeat(diag, max(minDiags, remainingWidth)),
 		))
 		b.WriteString(gap)
