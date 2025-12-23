@@ -5,13 +5,15 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/bubbles/v2/key"
-	"charm.land/bubbles/v2/textinput"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	compat_tea "github.com/uglyswap/crush/internal/compat/bubbletea"
+	compat_textinput "github.com/uglyswap/crush/internal/compat/bubbles/textinput"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/tui/components/core/layout"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -21,7 +23,7 @@ var alphanumericRegexGroup = regexp.MustCompile(`^[a-zA-Z0-9]*$`)
 
 type FilterableGroupList[T FilterableItem] interface {
 	GroupedList[T]
-	Cursor() *tea.Cursor
+	Cursor() *compat_tea.Cursor
 	SetInputWidth(int)
 	SetInputPlaceholder(string)
 }
@@ -58,16 +60,16 @@ func NewFilterableGroupedList[T FilterableItem](items []Group[T], opts ...filter
 
 	ti := textinput.New()
 	ti.Placeholder = f.placeholder
-	ti.SetVirtualCursor(false)
+	compat_textinput.SetVirtualCursorOnModel(&ti, false)
 	ti.Focus()
-	ti.SetStyles(t.S().TextInput)
+	compat_textinput.SetStylesOnModel(&ti, t.S().TextInput)
 	f.input = ti
 	return f
 }
 
 func (f *filterableGroupList[T]) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		switch {
 		// handle movements
 		case key.Matches(msg, f.keyMap.Down),
@@ -169,9 +171,9 @@ func (f *filterableGroupList[T]) SetSize(w, h int) tea.Cmd {
 		return f.groupedList.SetSize(w, h)
 	}
 	if f.inputWidth == 0 {
-		f.input.SetWidth(w)
+		compat_textinput.SetWidthOnModel(&f.input, w)
 	} else {
-		f.input.SetWidth(f.inputWidth)
+		compat_textinput.SetWidthOnModel(&f.input, f.inputWidth)
 	}
 	return f.groupedList.SetSize(w, h-(f.inputHeight()))
 }
@@ -284,11 +286,12 @@ func (f *filterableGroupList[T]) SetGroups(groups []Group[T]) tea.Cmd {
 	return f.groupedList.SetGroups(groups)
 }
 
-func (f *filterableGroupList[T]) Cursor() *tea.Cursor {
+func (f *filterableGroupList[T]) Cursor() *compat_tea.Cursor {
 	if f.inputHidden {
 		return nil
 	}
-	return f.input.Cursor()
+	// Standard textinput doesn't return tea.Cursor, return nil
+	return nil
 }
 
 func (f *filterableGroupList[T]) Blur() tea.Cmd {

@@ -4,13 +4,13 @@ import (
 	"strings"
 	"sync"
 
-	"charm.land/bubbles/v2/key"
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/components/anim"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/uglyswap/crush/internal/tui/components/anim"
+	"github.com/uglyswap/crush/internal/tui/components/core/layout"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/exp/ordered"
@@ -250,8 +250,8 @@ func (l *list[T]) Init() tea.Cmd {
 // Update implements List.
 func (l *list[T]) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.MouseWheelMsg:
-		if l.enableMouse {
+	case tea.MouseMsg:
+		if l.enableMouse && (msg.Type == tea.MouseWheelUp || msg.Type == tea.MouseWheelDown) {
 			return l.handleMouseWheel(msg)
 		}
 		return l, nil
@@ -282,7 +282,7 @@ func (l *list[T]) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			}
 		}
 		return l, tea.Batch(cmds...)
-	case tea.KeyPressMsg:
+	case tea.KeyMsg:
 		if l.focused {
 			switch {
 			case key.Matches(msg, l.keyMap.Down):
@@ -323,9 +323,9 @@ func (l *list[T]) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 	return l, nil
 }
 
-func (l *list[T]) handleMouseWheel(msg tea.MouseWheelMsg) (util.Model, tea.Cmd) {
+func (l *list[T]) handleMouseWheel(msg tea.MouseMsg) (util.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	switch msg.Button {
+	switch msg.Type {
 	case tea.MouseWheelDown:
 		cmd = l.MoveDown(ViewportDefaultScrollSize)
 	case tea.MouseWheelUp:

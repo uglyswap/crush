@@ -3,12 +3,13 @@ package list
 import (
 	"image/color"
 
-	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	compat_lipgloss "github.com/uglyswap/crush/internal/compat/lipgloss"
+	"github.com/uglyswap/crush/internal/tui/components/core"
+	"github.com/uglyswap/crush/internal/tui/components/core/layout"
+	"github.com/uglyswap/crush/internal/tui/styles"
+	"github.com/uglyswap/crush/internal/tui/util"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/google/uuid"
 	"github.com/rivo/uniseg"
@@ -116,15 +117,15 @@ func (c *completionItemCmp[T]) View() string {
 	titleStyle := t.S().Text.Width(innerWidth)
 	titleMatchStyle := t.S().Text.Underline(true)
 	if c.bgColor != nil {
-		titleStyle = titleStyle.Background(c.bgColor)
-		titleMatchStyle = titleMatchStyle.Background(c.bgColor)
-		itemStyle = itemStyle.Background(c.bgColor)
+		titleStyle = titleStyle.Background(styles.TC(c.bgColor))
+		titleMatchStyle = titleMatchStyle.Background(styles.TC(c.bgColor))
+		itemStyle = itemStyle.Background(styles.TC(c.bgColor))
 	}
 
 	if c.focus {
 		titleStyle = t.S().TextSelected.Width(innerWidth)
 		titleMatchStyle = t.S().TextSelected.Underline(true)
-		itemStyle = itemStyle.Background(t.Primary)
+		itemStyle = itemStyle.Background(styles.TC(t.Primary))
 	}
 
 	var truncatedTitle string
@@ -139,15 +140,15 @@ func (c *completionItemCmp[T]) View() string {
 
 	text := titleStyle.Render(truncatedTitle)
 	if len(c.matchIndexes) > 0 {
-		var ranges []lipgloss.Range
+		var ranges []compat_lipgloss.Range
 		for _, rng := range matchedRanges(c.matchIndexes) {
 			// ansi.Cut is grapheme and ansi sequence aware, we match against a ansi.Stripped string, but we might still have graphemes.
 			// all that to say that rng is byte positions, but we need to pass it down to ansi.Cut as char positions.
 			// so we need to adjust it here:
 			start, stop := bytePosToVisibleCharPos(truncatedTitle, rng)
-			ranges = append(ranges, lipgloss.NewRange(start, stop+1, titleMatchStyle))
+			ranges = append(ranges, compat_lipgloss.NewRange(start, stop+1, titleMatchStyle))
 		}
-		text = lipgloss.StyleRanges(text, ranges...)
+		text = compat_lipgloss.StyleRanges(text, ranges...)
 	}
 	parts := []string{text}
 	if c.shortcut != "" {
