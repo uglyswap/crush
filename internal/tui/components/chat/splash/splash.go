@@ -736,10 +736,18 @@ func (s *splashCmp) View() string {
 	case s.isOnboarding:
 		modelListView := s.modelList.View()
 		remainingHeight := s.height - lipgloss.Height(s.logoRendered) - SplashScreenPaddingY
+		helpStyle := t.S().Base.PaddingLeft(1).Foreground(styles.TC(t.FgMuted))
+		keyStyle := t.S().Base.Foreground(styles.TC(t.Success))
+		helpText := helpStyle.Render("Use ") +
+			keyStyle.Render("↑/↓") +
+			helpStyle.Render(" to navigate, ") +
+			keyStyle.Render("Enter") +
+			helpStyle.Render(" to select, or type to search")
 		modelSelector := t.S().Base.AlignVertical(lipgloss.Bottom).Height(remainingHeight).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				t.S().Base.PaddingLeft(1).Foreground(styles.TC(t.Primary)).Render("To start, let's choose a provider and model."),
+				helpText,
 				"",
 				modelListView,
 			),
@@ -871,10 +879,35 @@ func (s *splashCmp) infoSection() string {
 			"",
 			s.currentModelBlock(),
 			"",
+			s.shortcutsBlock(),
+			"",
 			lipgloss.JoinHorizontal(lipgloss.Left, s.lspBlock(), s.mcpBlock()),
 			"",
 		),
 	)
+}
+
+func (s *splashCmp) shortcutsBlock() string {
+	t := styles.CurrentTheme()
+	keyStyle := t.S().Base.Foreground(styles.TC(t.Success))
+	descStyle := t.S().Base.Foreground(styles.TC(t.FgMuted))
+
+	shortcuts := []struct {
+		key  string
+		desc string
+	}{
+		{"/", "commands"},
+		{"ctrl+l", "switch model"},
+		{"ctrl+p", "command palette"},
+		{"ctrl+g", "help"},
+	}
+
+	var parts []string
+	for _, sc := range shortcuts {
+		parts = append(parts, keyStyle.Render(sc.key)+descStyle.Render(" "+sc.desc))
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, parts[0], "  ", parts[1], "  ", parts[2], "  ", parts[3])
 }
 
 func (s *splashCmp) logoBlock() string {

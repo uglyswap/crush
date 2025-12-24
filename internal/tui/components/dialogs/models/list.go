@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"fmt"
 	"slices"
-	"strings"
 
 	tea "github.com/uglyswap/crush/internal/compat/bubbletea"
 	"github.com/uglyswap/crush/internal/catwalk"
@@ -59,14 +58,14 @@ func (m *ModelListComponent) Init() tea.Cmd {
 	if len(m.providers) == 0 {
 		cfg := config.Get()
 		providers, err := config.Providers(cfg)
+		// Show all available providers - users can configure API keys after selection
 		filteredProviders := []catwalk.Provider{}
 		for _, p := range providers {
-			hasAPIKeyEnv := strings.HasPrefix(p.APIKey, "$")
-			isHyper := p.ID == "hyper"
-			isCopilot := p.ID == catwalk.InferenceProviderCopilot
-			if (hasAPIKeyEnv && p.ID != catwalk.InferenceProviderAzure) || isHyper || isCopilot {
-				filteredProviders = append(filteredProviders, p)
+			// Skip Azure as it requires special configuration
+			if p.ID == catwalk.InferenceProviderAzure {
+				continue
 			}
+			filteredProviders = append(filteredProviders, p)
 		}
 
 		m.providers = filteredProviders
