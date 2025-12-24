@@ -40,6 +40,7 @@ const (
 	TypeBedrock      Type = "bedrock"
 	TypeVertexAI     Type = "vertexai"
 	TypeOpenRouter   Type = "openrouter"
+	TypeZAI          Type = "openai-compat" // Zhipu AI uses OpenAI-compatible API
 )
 
 // Model represents a model configuration.

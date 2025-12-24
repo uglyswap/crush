@@ -119,8 +119,21 @@ func (h *header) details(availWidth int) string {
 		parts = append(parts, s.Error.Render(fmt.Sprintf("%s%d", styles.ErrorIcon, errorCount)))
 	}
 
-	agentCfg := config.Get().Agents[config.AgentCoder]
-	model := config.Get().GetModelByType(agentCfg.Model)
+	cfg := config.Get()
+	agentCfg := cfg.Agents[config.AgentCoder]
+	model := cfg.GetModelByType(agentCfg.Model)
+
+	// Display current model name
+	selectedModel := cfg.Models[agentCfg.Model]
+	modelName := model.Name
+	if modelName == "" {
+		modelName = selectedModel.Model
+	}
+	if modelName != "" {
+		modelDisplay := s.Base.Foreground(styles.TC(styles.CurrentTheme().Success)).Render(modelName)
+		parts = append(parts, modelDisplay)
+	}
+
 	percentage := (float64(h.session.CompletionTokens+h.session.PromptTokens) / float64(model.ContextWindow)) * 100
 	formattedPercentage := s.Muted.Render(fmt.Sprintf("%d%%", int(percentage)))
 	parts = append(parts, formattedPercentage)
