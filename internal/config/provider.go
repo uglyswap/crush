@@ -17,8 +17,10 @@ import (
 
 	"github.com/uglyswap/crush/internal/catwalk"
 	"github.com/uglyswap/crush/internal/catwalk/embedded"
+	"github.com/uglyswap/crush/internal/catwalk/remote"
 	"github.com/uglyswap/crush/internal/agent/hyper"
 	"github.com/uglyswap/crush/internal/csync"
+	"github.com/uglyswap/crush/internal/env"
 	"github.com/uglyswap/crush/internal/home"
 	"github.com/charmbracelet/x/etag"
 )
@@ -182,9 +184,65 @@ func Providers(cfg *Config) ([]catwalk.Provider, error) {
 		wg.Wait()
 
 		providerList = slices.Collect(providers.Seq())
+
+		// Fetch dynamic models from provider APIs if API keys are configured
+		providerList = fetchDynamicModels(ctx, cfg, providerList)
+
 		providerErr = errors.Join(errs...)
 	})
 	return providerList, providerErr
+}
+
+// fetchDynamicModels fetches models from provider APIs for providers with configured API keys.
+func fetchDynamicModels(ctx context.Context, cfg *Config, providers []catwalk.Provider) []catwalk.Provider {
+	// Skip if dynamic fetch is disabled
+	if cfg.Options.DisableDynamicModelFetch {
+		return providers
+	}
+
+	fetcher := remote.NewModelFetcher()
+	e := env.System()
+
+	// Collect API keys from config
+	apiKeys := make(map[catwalk.InferenceProvider]string)
+	for providerID, providerCfg := range cfg.Providers.Seq2() {
+		if providerCfg.APIKey != "" {
+			// Resolve environment variable if starts with $
+			resolvedKey := providerCfg.APIKey
+			if strings.HasPrefix(resolvedKey, "$") {
+				resolvedKey = e.Get(strings.TrimPrefix(resolvedKey, "$"))
+			}
+			if resolvedKey != "" {
+				apiKeys[catwalk.InferenceProvider(providerID)] = resolvedKey
+			}
+		}
+	}
+
+	// No API keys configured, return original providers
+	if len(apiKeys) == 0 {
+		return providers
+	}
+
+	// Fetch models for each provider with an API key
+	for i := range providers {
+		apiKey, hasKey := apiKeys[providers[i].ID]
+		if !hasKey || apiKey == "" {
+			continue
+		}
+
+		models, err := fetcher.FetchModels(ctx, providers[i].ID, apiKey)
+		if err != nil {
+			slog.Debug("Failed to fetch dynamic models", "provider", providers[i].ID, "error", err)
+			continue
+		}
+
+		if len(models) > 0 {
+			slog.Info("Fetched dynamic models", "provider", providers[i].ID, "count", len(models))
+			providers[i].Models = models
+		}
+	}
+
+	return providers
 }
 
 type cache[T any] struct {
