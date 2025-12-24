@@ -20,7 +20,6 @@ import (
 	"github.com/uglyswap/crush/internal/catwalk/remote"
 	"github.com/uglyswap/crush/internal/agent/hyper"
 	"github.com/uglyswap/crush/internal/csync"
-	"github.com/uglyswap/crush/internal/env"
 	"github.com/uglyswap/crush/internal/home"
 	"github.com/charmbracelet/x/etag"
 )
@@ -201,7 +200,6 @@ func fetchDynamicModels(ctx context.Context, cfg *Config, providers []catwalk.Pr
 	}
 
 	fetcher := remote.NewModelFetcher()
-	e := env.System()
 
 	// Collect API keys from config
 	apiKeys := make(map[catwalk.InferenceProvider]string)
@@ -210,7 +208,7 @@ func fetchDynamicModels(ctx context.Context, cfg *Config, providers []catwalk.Pr
 			// Resolve environment variable if starts with $
 			resolvedKey := providerCfg.APIKey
 			if strings.HasPrefix(resolvedKey, "$") {
-				resolvedKey = e.Get(strings.TrimPrefix(resolvedKey, "$"))
+				resolvedKey = os.Getenv(strings.TrimPrefix(resolvedKey, "$"))
 			}
 			if resolvedKey != "" {
 				apiKeys[catwalk.InferenceProvider(providerID)] = resolvedKey

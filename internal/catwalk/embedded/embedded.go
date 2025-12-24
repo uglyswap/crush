@@ -524,5 +524,107 @@ func GetAll() []catwalk.Provider {
 				},
 			},
 		},
+		// Groq - Ultra-fast LPU inference
+		{
+			ID:                  catwalk.InferenceProviderGroq,
+			Name:                "Groq",
+			Type:                catwalk.TypeOpenAICompat,
+			BaseURL:             "https://api.groq.com/openai/v1",
+			DefaultLargeModelID: "llama-3.3-70b-versatile",
+			DefaultSmallModelID: "llama-3.1-8b-instant",
+			Models: catwalk.ModelList{
+				// Llama 3.3 70B
+				{
+					ID:               "llama-3.3-70b-versatile",
+					Name:             "Llama 3.3 70B Versatile",
+					CostPer1MIn:      0.59,
+					CostPer1MOut:     0.79,
+					ContextWindow:    128000,
+					DefaultMaxTokens: 32768,
+				},
+				{
+					ID:               "llama-3.3-70b-specdec",
+					Name:             "Llama 3.3 70B SpecDec",
+					CostPer1MIn:      0.59,
+					CostPer1MOut:     0.99,
+					ContextWindow:    8192,
+					DefaultMaxTokens: 8192,
+				},
+				// Llama 3.1 series
+				{
+					ID:               "llama-3.1-70b-versatile",
+					Name:             "Llama 3.1 70B Versatile",
+					CostPer1MIn:      0.59,
+					CostPer1MOut:     0.79,
+					ContextWindow:    128000,
+					DefaultMaxTokens: 32768,
+				},
+				{
+					ID:               "llama-3.1-8b-instant",
+					Name:             "Llama 3.1 8B Instant",
+					CostPer1MIn:      0.05,
+					CostPer1MOut:     0.08,
+					ContextWindow:    128000,
+					DefaultMaxTokens: 8192,
+				},
+				// Llama 3.2 Vision
+				{
+					ID:               "llama-3.2-90b-vision-preview",
+					Name:             "Llama 3.2 90B Vision",
+					CostPer1MIn:      0.90,
+					CostPer1MOut:     0.90,
+					ContextWindow:    8000,
+					DefaultMaxTokens: 8000,
+					SupportsImages:   true,
+				},
+				{
+					ID:               "llama-3.2-11b-vision-preview",
+					Name:             "Llama 3.2 11B Vision",
+					CostPer1MIn:      0.18,
+					CostPer1MOut:     0.18,
+					ContextWindow:    8000,
+					DefaultMaxTokens: 8000,
+					SupportsImages:   true,
+				},
+				// Mixtral
+				{
+					ID:               "mixtral-8x7b-32768",
+					Name:             "Mixtral 8x7B",
+					CostPer1MIn:      0.24,
+					CostPer1MOut:     0.24,
+					ContextWindow:    32768,
+					DefaultMaxTokens: 32768,
+				},
+				// Gemma 2
+				{
+					ID:               "gemma2-9b-it",
+					Name:             "Gemma 2 9B",
+					CostPer1MIn:      0.20,
+					CostPer1MOut:     0.20,
+					ContextWindow:    8192,
+					DefaultMaxTokens: 8192,
+				},
+				// DeepSeek R1 Distill
+				{
+					ID:               "deepseek-r1-distill-llama-70b",
+					Name:             "DeepSeek R1 Distill 70B",
+					CostPer1MIn:      0.75,
+					CostPer1MOut:     0.99,
+					ContextWindow:    128000,
+					DefaultMaxTokens: 16384,
+					CanReason:        true,
+				},
+				// Qwen QwQ
+				{
+					ID:               "qwen-qwq-32b",
+					Name:             "Qwen QwQ 32B",
+					CostPer1MIn:      0.29,
+					CostPer1MOut:     0.39,
+					ContextWindow:    32768,
+					DefaultMaxTokens: 16384,
+					CanReason:        true,
+				},
+			},
+		},
 	}
 }

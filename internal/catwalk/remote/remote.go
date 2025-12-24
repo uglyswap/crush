@@ -41,6 +41,10 @@ func NewModelFetcher() *ModelFetcher {
 		cache:    make(map[string]cachedModels),
 		cacheTTL: 1 * time.Hour,
 		providers: map[catwalk.InferenceProvider]providerConfig{
+			catwalk.InferenceProviderAnthropic: {
+				modelsEndpoint: "https://api.anthropic.com/v1/models",
+				parseFunc:      parseAnthropicModels,
+			},
 			catwalk.InferenceProviderOpenAI: {
 				modelsEndpoint: "https://api.openai.com/v1/models",
 				parseFunc:      parseOpenAIModels,
@@ -52,6 +56,10 @@ func NewModelFetcher() *ModelFetcher {
 			catwalk.InferenceProviderOpenRouter: {
 				modelsEndpoint: "https://openrouter.ai/api/v1/models",
 				parseFunc:      parseOpenRouterModels,
+			},
+			catwalk.InferenceProviderGroq: {
+				modelsEndpoint: "https://api.groq.com/openai/v1/models",
+				parseFunc:      parseGroqModels,
 			},
 			catwalk.InferenceProviderZAI: {
 				modelsEndpoint: "https://open.bigmodel.cn/api/paas/v4/models",
@@ -88,6 +96,9 @@ func (f *ModelFetcher) FetchModels(ctx context.Context, providerID catwalk.Infer
 
 	// Set auth header based on provider
 	switch providerID {
+	case catwalk.InferenceProviderAnthropic:
+		req.Header.Set("x-api-key", apiKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
 	case catwalk.InferenceProviderOpenAI:
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	case catwalk.InferenceProviderGoogle:
@@ -96,6 +107,8 @@ func (f *ModelFetcher) FetchModels(ctx context.Context, providerID catwalk.Infer
 		q.Set("key", apiKey)
 		req.URL.RawQuery = q.Encode()
 	case catwalk.InferenceProviderOpenRouter:
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	case catwalk.InferenceProviderGroq:
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 	case catwalk.InferenceProviderZAI:
 		req.Header.Set("Authorization", "Bearer "+apiKey)
@@ -138,6 +151,40 @@ func (f *ModelFetcher) FetchModels(ctx context.Context, providerID catwalk.Infer
 	return models, nil
 }
 
+// Anthropic models response
+type anthropicModelsResponse struct {
+	Data []struct {
+		ID          string `json:"id"`
+		DisplayName string `json:"display_name"`
+		CreatedAt   string `json:"created_at"`
+		Type        string `json:"type"`
+	} `json:"data"`
+}
+
+func parseAnthropicModels(body []byte) ([]catwalk.Model, error) {
+	var resp anthropicModelsResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, err
+	}
+
+	var models []catwalk.Model
+	for _, m := range resp.Data {
+		// Only include claude models
+		if !strings.HasPrefix(m.ID, "claude") {
+			continue
+		}
+		name := m.DisplayName
+		if name == "" {
+			name = formatModelName(m.ID)
+		}
+		models = append(models, catwalk.Model{
+			ID:   m.ID,
+			Name: name,
+		})
+	}
+	return models, nil
+}
+
 // OpenAI models response
 type openAIModelsResponse struct {
 	Data []struct {
@@ -176,6 +223,41 @@ func isRelevantOpenAIModel(id string) bool {
 		}
 	}
 	return false
+}
+
+// Groq models response
+type groqModelsResponse struct {
+	Data []struct {
+		ID                  string `json:"id"`
+		Object              string `json:"object"`
+		Created             int64  `json:"created"`
+		OwnedBy             string `json:"owned_by"`
+		Active              bool   `json:"active"`
+		ContextWindow       int64  `json:"context_window"`
+		MaxCompletionTokens int64  `json:"max_completion_tokens"`
+	} `json:"data"`
+}
+
+func parseGroqModels(body []byte) ([]catwalk.Model, error) {
+	var resp groqModelsResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, err
+	}
+
+	var models []catwalk.Model
+	for _, m := range resp.Data {
+		// Only include active models
+		if !m.Active {
+			continue
+		}
+		models = append(models, catwalk.Model{
+			ID:               m.ID,
+			Name:             formatModelName(m.ID),
+			ContextWindow:    m.ContextWindow,
+			DefaultMaxTokens: m.MaxCompletionTokens,
+		})
+	}
+	return models, nil
 }
 
 // Google models response

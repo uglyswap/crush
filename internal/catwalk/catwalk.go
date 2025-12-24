@@ -23,6 +23,7 @@ const (
 	InferenceProviderGitHubCopilot InferenceProvider = "github-copilot"
 	InferenceProviderCopilot       InferenceProvider = "copilot"
 	InferenceProviderZAI           InferenceProvider = "z-ai"
+	InferenceProviderGroq          InferenceProvider = "groq"
 	InferenceProviderOpenAICompat  InferenceProvider = "openai-compat"
 	InferenceProviderHyper         InferenceProvider = "hyper"
 	InferenceProviderVertexAI      InferenceProvider = "vertex-ai"
